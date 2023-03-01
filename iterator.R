@@ -1,4 +1,4 @@
-# Implementation of the interator pattern
+# Implementation of the iterator pattern
 rm(list = ls())
 
 # define a generic iterator
@@ -42,7 +42,7 @@ iterator.environment <- function(inventory_collection, type = "key", ...) {
   if (type == "key") {
     iterator.character(names(inventory_collection))
   } else if (type == "value") {
-    iterator.list(mget(objects(e), envir = e))
+    iterator.list(mget(objects(e, sorted = FALSE), envir = e))
   } else stop()
 
 }
@@ -58,8 +58,8 @@ for (j in 1:20) if (i$has_next_inventory_item())
   print(i$get_next_inventory_item()) else print(i$get_previous_inventory_item())
 
 e <- new.env()
-e$a <- 1
 e$b <- "2"
+e$a <- 1
 e$c <- "fish"
 i1 <- interator(e)
 i2 <- interator(e, type = "value")
