@@ -11,4 +11,4 @@ experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](h
 
 This repository contains a set of functional patterns in R. The emphasis
 is on functional programming so we focus on closures and generics rather
-than classes and inheritance.
+than classes, methods and inheritance.
