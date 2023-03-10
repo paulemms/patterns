@@ -1,4 +1,4 @@
-# Implementation of the iterator pattern
+# Implementation of the iterator (see generator) pattern
 rm(list = ls())
 
 # define a generic iterator
