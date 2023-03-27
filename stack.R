@@ -1,12 +1,12 @@
 # stack implementations
 rm(list = ls())
 
-# functional stack - repeated crerates copies of existing stack
+# functional stack - repeated creates copies of existing stack
 new_stack <- function(items = list()) {
-  structure(list(items = items), class = "stack")
+  structure(list(items = rev(items)), class = "stack")
 }
 push <- function(s, y) {
-  s$items <- c(list(y), s$items)
+  s$items <- c(as.list(y), s$items)
   s
 }
 pop <- function(s) {
@@ -16,7 +16,7 @@ pop <- function(s) {
 # extra function needed since pop must return stack
 top <- function(s) head(s$items, 1)
 
-s <- new_stack(1:4)
+s <- new_stack(1:4)  # 4 at top of stack
 s <- push(s, 10) # need to reassign to maintain stack state - new stack created
 top(s)
 s <- push(s, 20)
@@ -25,6 +25,17 @@ top(s)
 s <- push(s, 30)
 top(s)
 s
+
+# use replacement functions for stack - removes need for reassignment
+`push<-` <- function(x, value) { x$items <- c(as.list(value), x$items); x }
+`pop<-` <- function(x, value) { x$items <- x$items[-value]; x }
+
+s <- new_stack(1:5)
+push(s) <- 6 # emphasizes that we change stack by pushing
+top(s)
+pop(s) <- 1 # remove first value from stack
+top(s)
+
 
 # pop and push access the stack through their enclosed environment - just a primitive class really
 stack1 <- local({
@@ -131,16 +142,4 @@ fl(x2)
 # top
 tail(fl(x2), 1)
 
-# use a replacement functions for stack
 
-`push<-` <- function(x, value) {
-  c(x, value)
-}
-
-`pop<-` <- function(x, value) {
-  x[-1]
-}
-
-x <- 1:5
-push(x) <- 6:10
-(pop(x) <- x[1])

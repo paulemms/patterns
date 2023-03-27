@@ -1,4 +1,5 @@
 # create and manipulate a linked list - see stack
+# access using x[[c(2,3,4)]] notation
 rm(list = ls())
 
 # for last element of linked list
