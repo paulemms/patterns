@@ -67,3 +67,4 @@ for (j in 1:20) if (i1$has_next_inventory_item())
   print(c(i1$get_next_inventory_item(), i2$get_next_inventory_item())) else
     print(c(i1$get_previous_inventory_item(), i2$get_previous_inventory_item()))
 
+# S4 version
