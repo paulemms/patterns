@@ -8,14 +8,13 @@ if (dir.exists(package1_dir)) unlink(package1_dir, recursive = TRUE)
 create(package1_dir)#, open = TRUE)
 
 # add an R file
-file1 <- "
+file1 <- r"(
 #' @export
-setGeneric(\"fish\", function(x) NULL) # default method as second arg
+setGeneric("fish", function(x) NULL) # default method as second arg
 
 #' @export
-setMethod(\"fish\", signature(x = \"numeric\"), function(x) x + 1) # use numeric rather than double in S4 classes
-
-"
+setMethod("fish", signature(x = "numeric"), function(x) x + 1) # use numeric rather than double in S4 classes
+)"
 writeLines(file1, file.path(package1_dir, "R", "fish.R"))
 document(package1_dir)
 
@@ -29,14 +28,13 @@ if (dir.exists(package2_dir)) unlink(package2_dir, recursive = TRUE)
 create(package2_dir)#, open = TRUE)
 
 # add an R file
-file2 <- "
+file2 <- r"(
 #' @export
-setGeneric(\"fish\", function(x) NULL) # default method as second arg
+setGeneric("fish", function(x) NULL) # default method as second arg
 
 #' @export
-setMethod(\"fish\", signature(x = \"numeric\"), function(x) x + 2) # use numeric rather than double in S4 classes
-
-"
+setMethod("fish", signature(x = "numeric"), function(x) x + 2) # use numeric rather than double in S4 classes
+)"
 writeLines(file2, file.path(package2_dir, "R", "fish.R"))
 document(package2_dir)
 

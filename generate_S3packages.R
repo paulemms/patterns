@@ -8,16 +8,16 @@ if (dir.exists(package1_dir)) unlink(package1_dir, recursive = TRUE)
 create(package1_dir)#, open = TRUE)
 
 # add an R file
-file1 <- "
+file1 <- r"(
 #' @export
-fish <- function(x, ...) UseMethod(\"fish\", x)
+fish <- function(x, ...) UseMethod("fish", x)
 
 #' @exportS3Method
 fish.double <- function(x, ...) x + 1
 
 #' @exportS3Method
-fish.character <- function(x, ...) paste(x, \"1\")
-"
+fish.character <- function(x, ...) paste(x, "1")
+)"
 writeLines(file1, file.path(package1_dir, "R", "fish.R"))
 document(package1_dir)
 
@@ -31,16 +31,16 @@ if (dir.exists(package2_dir)) unlink(package2_dir, recursive = TRUE)
 create(package2_dir)#, open = TRUE)
 
 # add an R file
-file2 <- "
+file2 <- r"(
 #' @export
-fish <- function(x, ...) UseMethod(\"fish\", x)
+fish <- function(x, ...) UseMethod("fish", x)
 
 #' @exportS3Method
 fish.double <- function(x, ...) x + 2
 
 #' @exportS3Method
-fish.character <- function(x, ...) paste(x, \"2\")
-"
+fish.character <- function(x, ...) paste(x, "2")
+)"
 writeLines(file2, file.path(package2_dir, "R", "fish.R"))
 document(package2_dir)
 
