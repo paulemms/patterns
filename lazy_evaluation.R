@@ -1,5 +1,6 @@
 # calculations on infinite lists
 # https://nus-cs2030s.github.io/2223-s2/33-infinitelist.html
+# see lazyeval - old way in dplyr to do lazy evaluation using formulas - now dplyr uses tidy eval
 rm(list = ls())
 
 recursive_list <- function(hd, tl = NULL) structure(c(list(hd), tl), class = "RecursiveList")
@@ -60,7 +61,37 @@ get_element <- function(x, n) {
   if (n == 1) head(x) else get_element(tail(x), n - 1)
 }
 
-# EagerList<Integer> l = EagerList.iterate(1, i -> i < 10, i -> i + 1) // [1, ..., 9]
+get_element_tail <- function(x, n) {
+  if (n == 1) {
+    list(h = head(x), t = tail(x))
+  } else {
+    get_element_tail(tail(x), n - 1)
+  }
+}
+
+# single traverse over recursive_list
+get_elements <- function(x, idx) {
+  ret <- rep(NULL, length(idx))
+  xx <- x
+  order_idx <- order(idx)
+  idx <- idx[order_idx]
+  prev_idx <- 0
+  for (i in seq_along(idx)) {
+    j <- idx[[i]] - prev_idx
+    if (j > 0) {
+      ht <- get_element_tail(xx, j)
+      xx <- ht$t
+      prev_idx <- idx[[i]]
+      ret[[i]] <- ht$h
+    } else ret[[i]] <- ht$h
+  }
+
+  ret[order_idx]
+}
+
+get_element <- function(x, n) {
+  if (n == 1) head(x) else get_element(tail(x), n - 1)
+}# EagerList<Integer> l = EagerList.iterate(1, i -> i < 10, i -> i + 1) // [1, ..., 9]
 # .filter(i -> i % 3 == 0)  // [3, 6, 9]
 # .map(i -> i * 2);  // [6, 12, 18]
 # l.head();        // 6
@@ -75,6 +106,8 @@ head(by_1)
 head(tail(by_1))
 head(tail(tail(by_1)))
 get_element(by_1, 5)
+get_element_tail(by_1, 4)
+get_elements(filtered_by_1, 3:6)
 
 ones <- gen_list(\(x) 1, 4)
 as_list(ones)
@@ -89,7 +122,7 @@ get_element(ones, 3)
 # evens.head(); // -> 2
 # evens.get(6); // -> 14
 
-# infinte length lists
+# infinite length lists
 ones <- gen_list(\(x) 1)
 get_element(ones, 4)
 evens <- cond_list(0, \(x) x + 2)
@@ -98,3 +131,4 @@ get_element(evens, 4)
 tevens <- tail(evens)
 head(tevens)
 get_element(tevens, 7)
+
