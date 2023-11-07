@@ -27,27 +27,32 @@ my_if_else <- function(x, cond, f1, f2) {
   result
 }
 
-# ifelse on different types
+# partial evaluation on different types using a mask
 new_conditional <- function(x, ...) {
   UseMethod("new_conditional", x)
 }
 
 new_conditional.numeric <- function(v, mask) {
+  stopifnot(length(mask) == length(v))
   structure(list(v = v, mask = mask), class = "ConditionalVector")
 }
 
+# partial evaluation on columns of a data.frame
 new_conditional.data.frame <- function(df, mask) {
+  stopifnot(length(mask) == nrow(df))
   structure(list(df = df, mask = mask), class = "ConditionalDataFrame")
 }
 
-gif_else <- function(x, ...) {
-  UseMethod("gif_else", x)
+# partial ifelse on different types
+pif_else <- function(x, FUN_IF, FUN_ELSE, ...) {
+  stopifnot(is.function(FUN_IF), is.function(FUN_ELSE))
+  UseMethod("pif_else", x)
 }
 
+pif_else.ConditionalVector <- function(cv, FUN_IF, FUN_ELSE, ...) {
 
-gif_else.ConditionalVector <- function(cv, FUN_IF = f, FUN_ELSE = g) {
-
-  result <- rep(NA, length(cv$v))
+  result <- cv$mask
+  result[] <- NA
   i <- which(cv$mask)
   j <- which(!cv$mask)
   result[i] <- FUN_IF(cv$v[i])
@@ -56,7 +61,8 @@ gif_else.ConditionalVector <- function(cv, FUN_IF = f, FUN_ELSE = g) {
   result
 }
 
-gif_else.ConditionalDataFrame <- function(cdf, FUN_IF = f, FUN_ELSE = g, ...) {
+# partial if else on columns in a data.frame
+pif_else.ConditionalDataFrame <- function(cdf, FUN_IF, FUN_ELSE, ...) {
 
   result <-cdf$mask
   result[] <- NA
@@ -71,13 +77,16 @@ gif_else.ConditionalDataFrame <- function(cdf, FUN_IF = f, FUN_ELSE = g, ...) {
 my_if_else(x, cond, cube, square)
 if_else(cond(x), cube(x), square(x))
 cv <- new_conditional(x, cond(x))
-gif_else(cv, cube, square)
+pif_else(cv, cube, square)
 
 cond2 <- function(df) with(df, 2 * x == y)
 add <- function(df, z) with(df, x + y) + z
 mult <- function(df, z) with(df, x * y) * z
-df <- data.frame(x = c(1, 2), y = c(3, 4))
+dfr <- data.frame(x = c(1, 2), y = c(3, 4))
 
-cdf <- new_conditional(df, cond2(df))
-gif_else(cdf, add, mult, z = 1)
+cdf <- new_conditional(dfr, cond2(dfr))
+dfr$z <- pif_else(cdf, add, mult, z = 1)
+dfr
 
+# TODO: pass in lazy expressions rather than functions
+#       select case i.e. nested if_else
