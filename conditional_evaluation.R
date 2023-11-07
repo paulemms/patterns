@@ -1,5 +1,5 @@
 # Implementation of ifelse without needless function evaluation
-library(dplyr)
+library(dplyr) # for if_else
 rm(list = ls())
 
 # test functions
@@ -17,8 +17,9 @@ ifelse(cond(x), cube(x), square(x))
 
 # Jocelyn Ireson-Paine example as function and handle NAs
 my_if_else <- function(x, cond, f1, f2) {
-  i <- which(cond(x))
-  j <- which(!cond(x))
+  b <- cond(x)
+  i <- which(b)
+  j <- which(!b)
   result <- rep(NA, length(x))
   result[i] <- f1(x[i])
   result[j] <- f2(x[j])
