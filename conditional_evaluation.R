@@ -1,9 +1,16 @@
-# Implementation of ifelse without needless and/or unwanted function evaluation
+# Implementation of vectorised if else without needless and/or unwanted function
+# evaluation.
+
+# A conditional ifelse may give different results to the builtin ifelse.
+# For example, it is ambiguous what is wanted if the mean function is
+# included in the then or else expressions because it depends on the length of the
+# vector passed.
 
 # It might be better to keep evaluation on the entire vector
-# and set elements to NA if they are not to be evaled and require
+# and set elements to NA if they are not to be evaled. This requires
 # functions to return NA on those elements and not throw errors or warnings.
-# It depends on the application.
+# Whether this is practical depends on the application.
+
 
 library(testthat)
 library(dplyr) # for if_else
@@ -111,7 +118,10 @@ test_that("Partial evaluation works", {
   expect_no_error(if_else2(x %% 2 == 0, hate_odds(x) / 2, hate_evens(x) + 3))
 })
 
-
+# different output if aggregate functions included in then or else expressions
+# because the subsetted vector is passed to the clauses in if_else2
+ifelse(x > length(x) / 2 + a, x - mean(x), x - median(x))
+if_else2(x > length(x) / 2 + a, x - mean(x), x - median(x))
 
 # TODO:  select case i.e. nested if_else
 # TODO: promises in expressions?
