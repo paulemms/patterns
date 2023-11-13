@@ -28,15 +28,20 @@ if_else1 <- function(x, cond, f1, f2) {
   i <- which(b)
   j <- which(!b)
   result <- rep(NA, length(x))
-  # only evaluate elements of f1 when on b is TRUE
+  # only evaluate elements of f1 when b is TRUE
   if (length(i) > 0L) result[i] <- f1(x[i])
   if (length(j) > 0L) result[j] <- f2(x[j])
 
   result
 }
 
-if_else1(x, cond, cube, square)
-if_else(cond(x), cube(x), square(x))
+test_that('ifelse and if_else reproduced', {
+  expect_equal(if_else1(x, cond, cube, square),
+               ifelse(cond(x), cube(x), square(x)))
+  expect_equal(if_else1(x, cond, cube, square),
+               if_else(cond(x), cube(x), square(x)))
+})
+
 
 # Pass in expressions rather than functions
 if_else2 <- function(cond_vec, then_expr, else_expr) {
