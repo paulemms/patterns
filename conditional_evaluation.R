@@ -57,7 +57,9 @@ if_else1 <- function(x, cond, f1, f2) {
   b <- cond(x)
   i <- which(b)
   j <- which(!b)
-  result <- rep(NA, length(x))
+  # Create a result vector with attributes preserved
+  result <- x
+  result[] <- NA
   # only evaluate elements of f1 when b is TRUE
   if (length(i) > 0L) result[i] <- f1(x[i])
   if (length(j) > 0L) result[j] <- f2(x[j])
@@ -80,8 +82,9 @@ if_else2 <- function(cond_vec, then_expr, else_expr) {
   j <- which(!cond_vec)
   len <- length(cond_vec)
 
-  # Create a result vector as yet undefined.
-  result_vec <- rep(NA, len)
+  # Create a result vector with attributes preserved
+  result_vec <- cond_vec
+  result_vec[] <- NA
 
   then_vars <- all.vars(substitute(then_expr))
   l <- mget(then_vars, envir = parent.frame())
@@ -104,8 +107,8 @@ x <- 1:6
 e <- new.env()
 a <- -1:-3
 b <- 200
-ifelse(x > length(x) / 2 + a, x^3+a, x^2+b)
-if_else2(x > length(x) / 2 + a, x^3+a, x^2+b)
+ifelse(c(z = x > length(x) / 2 + a), x^3+a, x^2+b)
+if_else2(c(z = x > length(x) / 2 + a), x^3+a, x^2+b)
 
 
 # TODO: add more test_that cases
