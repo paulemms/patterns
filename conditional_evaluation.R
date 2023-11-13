@@ -7,7 +7,7 @@
 # ifelse is usually given a logical *vector* to test and returns
 # the corresponding elements in the then or else expressions.
 # The shape and attributes of the test vector give the shape and attributes of the output.
-if (TRUE) 2:4 else 5:7
+if (TRUE) 2:4 else 5:7 # if you have a scalar test often just use if
 ifelse(TRUE, 2:4, 5:7) # works element-wise on the test so returns one number
 ifelse(c(FALSE, TRUE), 2:4, 5:7)
 ifelse(c(FALSE, TRUE), 2, 1) # then and else expressions are tiled
