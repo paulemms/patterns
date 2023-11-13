@@ -1,19 +1,42 @@
-# Implementation of vectorised if else without needless and/or unwanted function
-# evaluation.
+# The functions if and ifelse are different functions in R and have a different
+# purpose.
 
-# A conditional ifelse may give different results to the builtin ifelse.
+# The latter is a vectorised version of if and it can lead to surprising results
+# because of R's loose typing, the attribute system, and the ambiguities of vectorisation.
+
+# ifelse is usually given a logical *vector* to test and returns
+# the corresponding elements in the then or else expressions.
+# The shape and attributes of the test vector give the shape and attributes of the output.
+if (TRUE) 2:4 else 5:7
+ifelse(TRUE, 2:4, 5:7) # works element-wise on the test so returns one number
+ifelse(c(FALSE, TRUE), 2:4, 5:7)
+ifelse(c(FALSE, TRUE), 2, 1) # then and else expressions are tiled
+
+# ifelse can work with objects like list too, but it can be confusing because they are coverted to a vector internally.
+ifelse(c(a=FALSE, b=TRUE), list(a=1, b=2), list(a=3, b=4)) # attributes of result are those of test
+ifelse(c(b=FALSE, a=TRUE), list(a=1, b=2), list(a=3, b=4)) # names of test are irrelevant for selection, order elements of test matter
+as.logical(list(a=FALSE, b=TRUE))
+ifelse(list(a=FALSE, b=TRUE), list(a=1, b=2), list(a=3, b=4)) # test coerced to logical vector so loses attributes
+
+# ifelse evaluates the entire then and else clauses and then picks elements
+# from them according to test.
+
+# Next we implement a vectorised ifelse without needless and/or unwanted function
+# evaluation of all elements of the then and else expressions.
+
+# Our ifelse may give different results to the builtin ifelse.
 # For example, it is ambiguous what is wanted if the mean function is
 # included in the then or else expressions because it depends on the length of the
 # vector passed.
 
-# It might be better to keep evaluation on the entire vector
+# In practice, it might be better to keep evaluation on the entire vector
 # and set elements to NA if they are not to be evaled. This requires
 # functions to return NA on those elements and not throw errors or warnings.
 # Whether this is practical depends on the application.
 
 
 library(testthat)
-library(dplyr) # for if_else
+library(dplyr) # for another if_else
 rm(list = ls())
 
 # test functions
@@ -63,12 +86,12 @@ if_else2 <- function(cond_vec, then_expr, else_expr) {
   then_vars <- all.vars(substitute(then_expr))
   l <- mget(then_vars, envir = parent.frame())
   # variables whose length is not len are tiled
-  l <- lapply(l, \(x) if (length(x) == len) x[i] else rep(x, len)[i])
+  l <- lapply(l, \(x) if (length(x) == len) x[i] else rep(x, length.out=len)[i])
   then_env <- list2env(l, parent = parent.frame())
 
   else_vars <- all.vars(substitute(else_expr))
   l <- mget(else_vars, envir = parent.frame())
-  l <- lapply(l, \(x) if (length(x) == len) x[j] else rep(x, len)[j])
+  l <- lapply(l, \(x) if (length(x) == len) x[j] else rep(x, length.out=len)[j])
   else_env <- list2env(l, parent = parent.frame())
 
   if (length(i) > 0L) result_vec[i] <- eval(substitute(then_expr), envir=then_env)
@@ -85,7 +108,7 @@ ifelse(x > length(x) / 2 + a, x^3+a, x^2+b)
 if_else2(x > length(x) / 2 + a, x^3+a, x^2+b)
 
 
-# TODO: add test_that cases
+# TODO: add more test_that cases
 
 # This shows that if you have a
 # conditional
