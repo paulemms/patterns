@@ -1,38 +1,49 @@
 # The functions if and ifelse are different functions in R and have a different
 # purpose.
 
-# The latter is a vectorised version of if and it can lead to surprising results
-# because of R's loose typing, the attribute system, and the ambiguities of vectorisation.
+# The former works on a logical scalar test expression, while the latter is
+# designed to test a logical *vector* expression. For each element of the
+# logical vector, ifelse returns the corresponding elements in the then or else
+# expressions which are usually vectors. Thus ifelse is a vectorised if
+# function. This can lead to surprising results because of R's loose typing, the
+# attribute system, and the ambiguities of vectorisation.
 
-# ifelse is usually given a logical *vector* to test and returns
-# the corresponding elements in the then or else expressions.
-# The shape and attributes of the test vector give the shape and attributes of the output.
-if (TRUE) 2:4 else 5:7 # if you have a scalar test often just use if
-ifelse(TRUE, 2:4, 5:7) # works element-wise on the test so returns one number
-ifelse(c(FALSE, TRUE), 2:4, 5:7)
-ifelse(c(FALSE, TRUE), 2, 1) # then and else expressions are tiled
+# The shape and attributes of the test vector give the shape and attributes of the output
+# for ifelse.
 
-# ifelse can work with objects like list too, but it can be confusing because they are coverted to a vector internally.
+# If you have a scalar test you probably mean to use use if
+if (TRUE) 2:4 else 5:10
+# Note the different size output here
+if (FALSE) 2:4 else 5:10
+# throws an error if test is NA, so you may need to test for NA with is.na to make sure your code doesn't crash
+try(if (NA) 1 else 2)
+# Don't pass conditional vectors to if
+try(if (c(FALSE, TRUE)) 2:4 else 5:10)
+
+
+# For ifelse the output structure is the same whatever the condition
+ifelse(TRUE, 2:4, 5:10) # works element-wise on the test so returns first number of then
+ifelse(FALSE, 2:4, 5:10) # works element-wise on the test so returns first number of else
+
+# With a vector test we get vector output
+ifelse(c(FALSE, TRUE), 2:4, 5:7) # first element of else, second element of then
+ifelse(c(FALSE, TRUE), 2, 1) # then and else expressions are tiled to match length of test vector
+ifelse(c(NA, TRUE), 2:4, 5:7) # handles NA test element and returns NA component
+
+# ifelse can work with objects like list too, but it can be confusing because
+# they are converted to a logical vector internally.
 ifelse(c(a=FALSE, b=TRUE), list(a=1, b=2), list(a=3, b=4)) # attributes of result are those of test
 ifelse(c(b=FALSE, a=TRUE), list(a=1, b=2), list(a=3, b=4)) # names of test are irrelevant for selection, order elements of test matter
+
+# test coerced to logical vector so loses attributes
 as.logical(list(a=FALSE, b=TRUE))
-ifelse(list(a=FALSE, b=TRUE), list(a=1, b=2), list(a=3, b=4)) # test coerced to logical vector so loses attributes
+ifelse(list(a=FALSE, b=TRUE), list(a=1, b=2), list(a=3, b=4))
 
 # ifelse evaluates the entire then and else clauses and then picks elements
-# from them according to test.
+# from them according to the conditional test.
 
 # Next we implement a vectorised ifelse without needless and/or unwanted function
 # evaluation of all elements of the then and else expressions.
-
-# Our ifelse may give different results to the builtin ifelse.
-# For example, it is ambiguous what is wanted if the mean function is
-# included in the then or else expressions because it depends on the length of the
-# vector passed.
-
-# In practice, it might be better to keep evaluation on the entire vector
-# and set elements to NA if they are not to be evaled. This requires
-# functions to return NA on those elements and not throw errors or warnings.
-# Whether this is practical depends on the application.
 
 
 library(testthat)
@@ -89,12 +100,12 @@ if_else2 <- function(cond_vec, then_expr, else_expr) {
   then_vars <- all.vars(substitute(then_expr))
   l <- mget(then_vars, envir = parent.frame())
   # variables whose length is not len are tiled
-  l <- lapply(l, \(x) if (length(x) == len) x[i] else rep(x, length.out=len)[i])
+  l <- lapply(l, \(x) rep(x, length.out=len)[i])
   then_env <- list2env(l, parent = parent.frame())
 
   else_vars <- all.vars(substitute(else_expr))
   l <- mget(else_vars, envir = parent.frame())
-  l <- lapply(l, \(x) if (length(x) == len) x[j] else rep(x, length.out=len)[j])
+  l <- lapply(l, \(x) rep(x, length.out=len)[j])
   else_env <- list2env(l, parent = parent.frame())
 
   if (length(i) > 0L) result_vec[i] <- eval(substitute(then_expr), envir=then_env)
@@ -104,51 +115,151 @@ if_else2 <- function(cond_vec, then_expr, else_expr) {
 }
 
 x <- 1:6
-e <- new.env()
 a <- -1:-3
 b <- 200
 ifelse(c(z = x > length(x) / 2 + a), x^3+a, x^2+b)
 if_else2(c(z = x > length(x) / 2 + a), x^3+a, x^2+b)
 
+# Pass in expressions rather than functions
+if_else2 <- function(cond_vec, then_expr, else_expr) {
+  stopifnot(is.logical(cond_vec))
+  i <- which(cond_vec)
+  j <- which(!cond_vec)
+  len <- length(cond_vec)
+
+  # Create a result vector with attributes preserved
+  result_vec <- cond_vec
+  result_vec[] <- NA
+
+  then_vars <- all.vars(substitute(then_expr))
+  l <- mget(then_vars, envir = parent.frame())
+  # variables whose length is not len are tiled
+  l <- lapply(l, \(x) rep(x, length.out=len)[i])
+  then_env <- list2env(l, parent = parent.frame())
+
+  else_vars <- all.vars(substitute(else_expr))
+  l <- mget(else_vars, envir = parent.frame())
+  l <- lapply(l, \(x) rep(x, length.out=len)[j])
+  else_env <- list2env(l, parent = parent.frame())
+
+  if (length(i) > 0L) result_vec[i] <- eval(substitute(then_expr), envir=then_env)
+  if (length(j) > 0L) result_vec[j] <- eval(substitute(else_expr), envir=else_env)
+
+  result_vec
+}
+# This shows that if you have a conditional ifelse( x %% 2 == 0, f1(x), f2(x) )
+# then f1 gets called on odd elements of x , and f2 gets called on even
+# elements, even though the form of the conditional makes it look as though they
+# don't. If f1 isn't designed for odds, or f2 for evens, this could cause
+# problems.
+#
+hate_odds <- function(x) {
+  if (any(x %% 2 == 1)) warning(sprintf("I hate odd numbers (%s). ",
+                                     paste(x[x%% 2 == 1], collapse = ", ")))
+  x
+}
+
+hate_evens <- function(x) {
+  if (any(x %% 2 == 0)) warning(sprintf("I hate even numbers (%s). ",
+                                     paste(x[x%% 2 == 0], collapse = ", ")))
+  x
+}
+test_that("Partial evaluation works", {
+  x <- 1:100
+  expect_warning(ifelse(x %% 2 == 1, hate_odds(x) / 2, hate_evens(x) + 3))
+  expect_warning(if_else(x %% 2 == 0, hate_odds(x) / 2, hate_evens(x) + 3))
+  expect_no_warning(if_else2(x %% 2 == 0, hate_odds(x) / 2, hate_evens(x) + 3))
+})
 
 # TODO: add more test_that cases
 
-# This shows that if you have a
-# conditional
-#     ifelse( x %% 2 == 0, f1(x), f2(x) )
-# then f1 gets called on odd
-# elements of x , and f2 gets called
-# on even elements, even though
-# the form of the conditional makes
-# it look as though they don't.
-# If f1 isn't designed for odds,
-# or f2 for evens, this could cause
-# crashes.
-#
-test_that("Partial evaluation works", {
-  hate_odds <- function(x) {
-    if (any(x %% 2 == 1)) stop(sprintf("I hate odd numbers (%s). ",
-                                       paste(x[x%% 2 == 1], collapse = ", ")))
-    x
-  }
+# Our if_else2 may give different results to the built in ifelse.
+# For example, it is ambiguous what is wanted if the mean function is
+# included in the then or else clauses because it depends on the length of the
+# vector passed.
 
-  hate_evens <- function( x ) {
-    if (any(x %% 2 == 0)) stop(sprintf("I hate even numbers (%s). ",
-                                       paste(x[x%% 2 == 1], collapse = ", ")))
-    x
-  }
-
-  x <- 1:100
-  expect_error(ifelse(x %% 2 == 0, hate_odds(x) / 2, hate_evens(x) + 3))
-  expect_error(if_else(x %% 2 == 0, hate_odds(x) / 2, hate_evens(x) + 3))
-  expect_no_error(if_else2(x %% 2 == 0, hate_odds(x) / 2, hate_evens(x) + 3))
-})
-
-# different output if aggregate functions included in then or else expressions
-# because the subsetted vector is passed to the clauses in if_else2
+# Different output because the subsetted vector is passed to the clauses in
+# if_else2
 ifelse(x > length(x) / 2 + a, x - mean(x), x - median(x))
 if_else2(x > length(x) / 2 + a, x - mean(x), x - median(x))
 
-# TODO:  select case i.e. nested if_else
-# TODO: promises in expressions?
+# In practice, it might be better to keep evaluation on the entire vector
+# and set elements to NA if they are not to be evaled. This requires
+# functions to return NA on those elements and not throw errors or warnings.
+# Whether this is practical depends on the application.
 
+if_else3 <- function(cond_vec, then_expr, else_expr) {
+  stopifnot(is.logical(cond_vec))
+
+  i <- which(cond_vec)
+  j <- which(!cond_vec)
+  len <- length(cond_vec)
+
+  # Create a result vector with attributes preserved
+  result_vec <- cond_vec
+  result_vec[] <- NA
+
+  then_vars <- all.vars(substitute(then_expr))
+  l <- mget(then_vars, envir = parent.frame())
+  # variables whose length is not len are tiled
+  l <- lapply(l, \(x) {
+    tmp_then <- rep(NA, len); tmp_then[i] <- rep(x, length.out=len)[i]; tmp_then
+    })
+  then_env <- list2env(l, parent = parent.frame())
+
+  else_vars <- all.vars(substitute(else_expr))
+  l <- mget(else_vars, envir = parent.frame())
+  l <- lapply(l, \(x) {
+    tmp_else <- rep(NA, len); tmp_else[j] <- rep(x, length.out=len)[j]; tmp_else
+    })
+  else_env <- list2env(l, parent = parent.frame())
+
+  if (length(i) > 0L) result_vec[i] <- eval(substitute(then_expr), envir=then_env)[i]
+  if (length(j) > 0L) result_vec[j] <- eval(substitute(else_expr), envir=else_env)[j]
+
+  result_vec
+}
+
+# Example
+z <- c(-2, 2)
+ifelse(z > 0, factorial(z), exp(z))
+if_else2(z > 0, factorial(z), exp(z))
+if_else3(z > 0, factorial(z), exp(z)) # no warning with conditional eval
+
+# But it is conceivable that we might need to evaluate the subsetted and the full variable
+# in the then expression e.g.
+ifelse(x > length(x) / 2 + a, x - mean(x), x - median(x))
+if_else2(x > length(x) / 2 + a, x - mean(x), x - median(x))
+# BUT now we need na.rm = TRUE because we have NAs in x
+if_else3(x > length(x) / 2 + a, x - mean(x, na.rm = TRUE), x - median(x, na.rm = TRUE))
+
+# We can force evaluation on a full vector by passing in extra variables
+if_else4 <- function(cond_vec, then_expr, else_expr, ...) {
+  stopifnot(is.logical(cond_vec))
+  add_vars <- list(...)
+  i <- which(cond_vec)
+  j <- which(!cond_vec)
+  len <- length(cond_vec)
+
+  # Create a result vector with attributes preserved
+  result_vec <- cond_vec
+  result_vec[] <- NA
+
+  then_vars <- setdiff(all.vars(substitute(then_expr)), names(add_vars))
+  l <- mget(then_vars, envir = parent.frame())
+  # variables whose length is not len are tiled
+  l <- lapply(l, \(x) rep(x, length.out=len)[i])
+  then_env <- list2env(c(l, add_vars), parent = parent.frame())
+
+  else_vars <- setdiff(all.vars(substitute(else_expr)), names(add_vars))
+  l <- mget(else_vars, envir = parent.frame())
+  l <- lapply(l, \(x) rep(x, length.out=len)[j])
+  else_env <- list2env(c(l, add_vars), parent = parent.frame())
+
+  if (length(i) > 0L) result_vec[i] <- eval(substitute(then_expr), envir=then_env)
+  if (length(j) > 0L) result_vec[j] <- eval(substitute(else_expr), envir=else_env)
+
+  result_vec
+}
+
+if_else4(x > length(x) / 2 + a, x - y1, x - y2, y1 = mean(x), y2 = median(x))
